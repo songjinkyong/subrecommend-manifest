@@ -10,7 +10,7 @@ spec:
   selector:
     matchLabels:
       app: subride-front
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       name: subride-front
@@ -22,7 +22,7 @@ spec:
         - name: dockerhub
       containers:
         - name: subride-front
-          image: docker.io/hiondal/subride-front:latest
+          image: docker.io/hiondal/subride-front:20241020152059
           imagePullPolicy: Always
           envFrom:
           - configMapRef:
