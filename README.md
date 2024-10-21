@@ -117,7 +117,177 @@
   - 없으면, https://github.com/hiondal/subride-front.git 의 내용 확인하여 작성  
 
 - CI/CD 파이프라인과 관련 파일 작성 
-   
+  - 최상위 디렉토리 하위에 deployment 디렉토리 추가  
+  - 하위에 Jenkinsfile, deploy.yaml.template, deploy_env_vars 파일 작성  
+  - 파일 내용은 https://github.com/hiondal/subride-front.git 의 내용으로 일단 작성하고 저장  
+  - deploy_env_vars의 아래 항목을 본인것으로 변경  
+    'MANIFEST_REPO'는 아직 작성하지 않았지만 일단 본인 Organization으로 변경  
+    ```
+    IMAGE_REG_CREDENTIAL=image_reg_credential_user15
+    API_GATEWAY_FQDN=http://user15.scg.msa.edutdc.com
+    USE_ARGOCD=false
+    GIT_ACCESS_CREDENTIAL=github_access_token_user15
+    MANIFEST_REPO=github.com/hiondal/subrecommend-manifest.git
+    NAMESPACE=user15
+    SERVICE_ACCOUNT=sa-user15
+    IMAGE_REG_ORG=hiondal
+    EUREKA_URL=http://user15.eureka.msa.edutdc.com/eureka/apps/subrecommend-service
+    INGRESS_HOST=user15.subride-front.msa.edutdc.com  
+    ```
+  - 파일을 모두 저장하고, 터미널을 vscode에서 열고 Git push 함   
+    ```
+    git add . && git commit -m "add cicd" && git push -u origin main
+    ```
+- Jenkins 파이프라인 작성  
+  - Jenkins에 본인 ID/PW로 로그인  
+  - 좌측에서 '새로운 Item' 클릭  
+  - 이름을 'subride-front-{본인계정}'으로 하고, item type은 'Pipeline'으로 선택
+  - 파이프라인 구성  
+    - Enable project-based security: 본인만 파이프라인 보게 하는 권한 설정   
+      - 체크 하고 'Do not inherit permission grants from other ACLs' 선택
+      - 'Add user'누르고, 본인계정 추가. 본인 계정 맨 오론쪽에 '모두체크' 아이콘 클릭하여 모든 권한 부여  
+    - Build Triggers: GitHub hook trigger for GITScm polling' 체크. Git 소스 변경 시 자동으로 파이프라인 수행하는 옵션임  
+    - Pipeline: 아래 항목만 변경하고 나머지는 기본값 사용  
+      - Definition: Pipeline script from SCM
+      - SCM : Git
+      - Repository URL: 본인의 Subride-front Git repo 주소
+      - Credentials: 본인의 git 접근 credential 선택 
+      - Branch Specifier: */main
+      - Script Path: ./deployment/Jenkinsfile    
+  - 저장 후 좌측메뉴에서 '지금 빌드' 클릭  
+  - 좌측 메뉴에서 '블루오션 열기'를 클릭하여 진행상황 모니터링  
 
+- Git repo에 Webhook 추가
+  - github에서 subride-front repo 열기
+  - 'Settings'선택 후 좌측에서 'Webhooks' 클릭
+  - 'Add webhook' 클릭
+    - Payload URL: http://jenkins.msa.edutdc.com/github-webhook/
+    - Content type: application/json
+    - SSL verfification: Disable
+  - 테스트: 'Edit'버튼 클릭하고, 'Recent Deliveries'탭에서 맨 앞에 체크 아이콘 되어 있는지 확인  
+
+> 참고: 파이프라인의 공통 수행은 [pipeline_shared_library](https://github.com/cna-bootcamp/pipeline_shared_library.git)의  'CommonFunctions.groovy'파일을 참고하십시오.  
+ 
 ## 백엔드 애플리케이션
+- 로컬 작업 디렉토리로 이동  
+  ```
+  cd ~/home/workspace
+  ```
+- subrecommend의 Git repo를 로컬에 Clone 또는 Pull하고 IntelliJ에서 오픈    
+  기존에 local git repo가 없으면 clone하고 이동  
+  ```
+  git clone {본인 Git Repo}
+  cd subrecommend
+  ```
+  기존에 이미 local git repo가 있으면 이동 후 pull
+  ```
+  cd subrecommend
+  git pull
+  ```
+
+
+  만약, 기존 작성된 코드가 없다면 아래 예제 코드를 클론하고 본인 Git Repository를 작성하여 푸시  
+  - Github에 'subrecommend'라는 이름으로 Git repo 작성  
+  - 로컬에서 sample 클론
+    ```
+    git clone https://github.com/hiondal/subrecommend.git
+    cd subrecommend
+    ```
+  - 본인 Git repo로 푸시  
+    ```
+    git checkout -B main
+    git remote set-url origin {본인 Git 주소}
+    echo " " >> README.md
+    git add . && git commit -m "to my git" && git push -u origin main
+    ```
+- SonarQube에 본인 프로젝트 작성   
+  - 로그인: ID는 본인 계정(예:user15)이고 암호는 'P@ssw0rd$'임  
+  - Projects 누르고 [Create local project] 클릭하여 생성
+    - Project display name: subrecommend-{본인계정}  
+    - Project key:  subrecommend-{본인계정}  
+    - Main branch name: main  
+    - 'Next'누르고 다음 페이지에서 'Use the global setting' 선택  
+  
+- SonarQube 정보 파일 작성: 최상위 디렉토리에 'sonar-project.properties'파일 작성  
+  최상위 build.gradle에 SonarQube 설정
+  ```
+  plugin 'org.sonarqube' 추가
+
+  plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.6'
+    id "org.sonarqube" version "5.0.0.4638" apply false		//apply false 해야 서브 프로젝트에 제대로 적용됨
+  }
+  ```
+  subprojects에 'sonarqube' 항목 추가
+  ```
+  subprojects {
+	apply plugin: 'org.springframework.boot'
+	apply plugin: 'org.sonarqube'
+    ...
+  }
+  ```
+
+- Image build 파일 확인
+  - buildfile 디렉토리 하위에 'Dockerfile_java' 있는지 확인  
+  - 없으면, https://github.com/hiondal/subrecommend.git 의 내용 확인하여 작성  
+
+- CI/CD 파이프라인과 관련 파일 작성 
+  - 최상위 디렉토리 하위에 deployment 디렉토리 추가  
+  - 하위에 Jenkinsfile, deploy.yaml.template, deploy_env_vars 파일 작성  
+  - 파일 내용은 https://github.com/hiondal/subrecommend.git 의 내용으로 일단 작성하고 저장  
+  - deploy_env_vars의 아래 항목을 본인것으로 변경  
+    'MANIFEST_REPO'는 아직 작성하지 않았지만 일단 본인 Organization으로 변경  
+    ```
+    IMAGE_REG_CREDENTIAL=image_reg_credential_user15
+    SONAR_PROJECT_KEY=subrecommend-user15
+    USE_ARGOCD=false
+    GIT_ACCESS_CREDENTIAL=github_access_token_user15
+    MANIFEST_REPO=github.com/hiondal/subrecommend-manifest.git
+    NAMESPACE=user15
+    SERVICE_ACCOUNT=sa-user15
+    IMAGE_REG_ORG=hiondal
+    FRONT_HOST=http://user15.subride-front.msa.edutdc.com
+    INGRESS_HOST=user15.subride-front.msa.edutdc.com  
+    ```
+    > Tip: DB_URL은 값을 큰따옴표로 감싸야 함. 값에 '='이 있기 때무임  
+
+  - 파일을 모두 저장하고, 터미널을 IntelliJ에서 열고 Git push 함   
+    ```
+    git add . && git commit -m "add cicd" && git push -u origin main
+    ```
+- Jenkins 파이프라인 작성  
+  - Jenkins에 본인 ID/PW로 로그인  
+  - 좌측에서 '새로운 Item' 클릭  
+  - 이름을 'subrecommend-{본인계정}'으로 하고, item type은 'Pipeline'으로 선택
+  - 파이프라인 구성  
+    - Enable project-based security: 본인만 파이프라인 보게 하는 권한 설정   
+      - 체크 하고 'Do not inherit permission grants from other ACLs' 선택
+      - 'Add user'누르고, 본인계정 추가. 본인 계정 맨 오론쪽에 '모두체크' 아이콘 클릭하여 모든 권한 부여  
+    - Build Triggers: GitHub hook trigger for GITScm polling' 체크. Git 소스 변경 시 자동으로 파이프라인 수행하는 옵션임  
+    - Pipeline: 아래 항목만 변경하고 나머지는 기본값 사용  
+      - Definition: Pipeline script from SCM
+      - SCM : Git
+      - Repository URL: 본인의 subrecommend Git repo 주소
+      - Credentials: 본인의 git 접근 credential 선택 
+      - Branch Specifier: */main
+      - Script Path: ./deployment/Jenkinsfile    
+  - 저장 후 좌측메뉴에서 '지금 빌드' 클릭  
+  - 좌측 메뉴에서 '블루오션 열기'를 클릭하여 진행상황 모니터링  
+
+- Git repo에 Webhook 추가
+  - github에서 subrecommend repo 열기
+  - 'Settings'선택 후 좌측에서 'Webhooks' 클릭
+  - 'Add webhook' 클릭
+    - Payload URL: http://jenkins.msa.edutdc.com/github-webhook/
+    - Content type: application/json
+    - SSL verfification: Disable
+  - 테스트: 'Edit'버튼 클릭하고, 'Recent Deliveries'탭에서 맨 앞에 체크 아이콘 되어 있는지 확인  
+
+## ArgoCD 연동  
+지금까지는 deploy_env_vars에서 USE_ARGOCD를 'false'로 하였기 때문에 Jenkins에서 Kubectl로 바로 배포하였습니다.  
+이제 ArgoCD를 연동하여 배포를 해보겠습니다.   
+
+- manifest repo 작성   
+  sample을 이용하여 manifest repo를 작성합니다.  
 
