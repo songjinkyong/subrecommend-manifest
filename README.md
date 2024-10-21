@@ -288,6 +288,56 @@
 지금까지는 deploy_env_vars에서 USE_ARGOCD를 'false'로 하였기 때문에 Jenkins에서 Kubectl로 바로 배포하였습니다.  
 이제 ArgoCD를 연동하여 배포를 해보겠습니다.   
 
-- manifest repo 작성   
+- manifest repo 작성: ArgoCD가 동기화하는 manifest가 있는 Git repo   
   sample을 이용하여 manifest repo를 작성합니다.  
+  
+  - 로컬에서 sample 클론
+    ```
+    cd ~/home/workspace
+    git clone https://github.com/hiondal/subrecommend-manifest.git
+    cd subrecommend-manifest
+    ```
+  - vscdoe에서 열어 config.yaml, eureka.yaml, scg.yaml에서 'user15'를 본인계정으로 변경  
+  - image는 'hiondal'에 있는 기존 이미지를 사용하므로 변경 불필요. 본인 이미지가 있다면 변경해도 됨  
+  - 본인 Git repo로 푸시  
+    ```
+    git checkout -B main
+    git remote set-url origin {본인 Git 주소}
+    echo " " >> README.md
+    git add . && git commit -m "to my git" && git push -u origin main
+    ```  
+- ArgoCD에 본인 프로젝트와 Application 작성  
+  - ArgoCD에 로그인: admin / P@ssw0rd$  
+  - Project 작성: 'Settings > Projects' 선택하고, 'New Project' 클릭  
+    - Project Name: 본인 계정. 예) user15
+    - SOURCE REPOSITORIES: 본인 manifest repo 추가. 예) https://github.com/hiondal/subrecommend-manifest.git
+    - DESTINATIONS: 
+      - Server: https://kubernetes.default.svc
+      - Name: in-cluster
+      - Namespace: 본인 k8s namespace. 예) user15
+  - Application 작성: 좌측메뉴에서 'Application' 선택하고, 'New App' 클릭  
+    - Application Name: subrecommend-{본인계정}   
+    - Project Name: 본인계정
+    - Sync Policy: Automatic
+    - SOURCE > Repository URL: 본인 manifest repo 주소  
+    - SOURCE > Path: manifest
+    - DESTINATION > Cluster URL: https://kubernetes.default.svc
+    - DESTINATION > Namespace: 본인 k8s namespace 
 
+- 프론트엔드 CI/CD
+  - 로컬에서 subride-front의 deployment/deploy_env_vars에서 USE_ARGOCD의 값을 'true'로 변경
+  - Git add, commit, push한 후 자동으로 파이프라인 시작 확인  
+  - 파이프라인 정상 종료 후 manifest repo의 manifest디렉토리에 subride-front.yaml이 생성되었는지 확인  
+  - ArgoCD의 Application 눌러서 배포 상태 확인
+  
+- 백엔드 CI/CD 
+  - 로컬에서 subrecommend의 deployment/deploy_env_vars에서 USE_ARGOCD의 값을 'true'로 변경
+  - Git add, commit, push한 후 자동으로 파이프라인 시작 확인  
+  - 파이프라인 정상 종료 후 manifest repo의 manifest디렉토리에 subrecommend.yaml이 생성되었는지 확인  
+  - ArgoCD의 Application 눌러서 배포 상태 확인
+
+- 최종 확인
+  - 웹브라우저에서 subride-front의 ingress host로 접근  
+  - 모든 기능이 정상 동작하는 지 확인  
+  
+         
