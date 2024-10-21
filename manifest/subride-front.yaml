@@ -22,7 +22,7 @@ spec:
         - name: dockerhub
       containers:
         - name: subride-front
-          image: docker.io/hiondal/subride-front:20241020174715
+          image: docker.io/hiondal/subride-front:20241021012620
           imagePullPolicy: Always
           envFrom:
           - configMapRef:
