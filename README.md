@@ -96,7 +96,7 @@
     git add . && git commit -m "to my git" && git push -u origin main
     ```
 - SonarQube에 본인 프로젝트 작성   
-  - 로그인: ID는 본인 계정(예:user15)이고 암호는 'P@ssw0rd$'임  
+  - 로그인: ID는 본인 계정(예:user15)이고 암호는 '{본인계정}P@ssw0rd$'임. 암호예) user15P@ssw0rd$  
   - Projects 누르고 [Create local project] 클릭하여 생성
     - Project display name: subride-front-{본인계정}  
     - Project key:  subride-front-{본인계정}  
