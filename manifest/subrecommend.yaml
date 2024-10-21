@@ -22,7 +22,7 @@ spec:
         - name: dockerhub
       containers:
         - name: subrecommend
-          image: docker.io/hiondal/subrecommend:20241020174931
+          image: docker.io/hiondal/subrecommend:20241021012401
           imagePullPolicy: Always
           env:
             - name: HOSTNAME
@@ -113,7 +113,7 @@ data:
   SPRING_APPLICATION_NAME: subrecommend-service
   HOSTNAME: subrecommend
   SERVER_PORT: "18080"
-  DB_URL: 
+  DB_URL: jdbc:mysql://mysql-primary-headless:3306/subrecommend?createDatabaseIfNotExist=true&serverTimezone=Asia/Seoul
 ---
 apiVersion: v1
 kind: Service
